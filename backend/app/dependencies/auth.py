@@ -1,15 +1,25 @@
-from fastapi import HTTPException, Request, status
+from typing import Tuple
+
+from fastapi import Depends, HTTPException, Request, status
 from pydantic import BaseModel
+from supabase import Client
 from supabase_auth.errors import AuthApiError, AuthInvalidJwtError
 
-from app.supabase_client import get_supabase_client
+from app.supabase_client import get_supabase_client, get_user_scoped_client
 
 
 class CurrentUser(BaseModel):
     id: str
 
 
-def get_current_user(request: Request) -> CurrentUser:
+def _verify_bearer_token(request: Request) -> Tuple[str, str]:
+    """Parse and verify the request's bearer token. Returns (user_id, token).
+
+    Shared by get_current_user and get_user_supabase_client so a request
+    using both only verifies the token once (FastAPI caches this
+    dependency's result per-request, since both depend on this same
+    function object).
+    """
     authorization = request.headers.get("Authorization")
     if not authorization:
         raise HTTPException(
@@ -49,4 +59,20 @@ def get_current_user(request: Request) -> CurrentUser:
             detail="Token is missing a subject claim",
         )
 
+    return user_id, token
+
+
+def get_current_user(
+    verified: Tuple[str, str] = Depends(_verify_bearer_token),
+) -> CurrentUser:
+    user_id, _ = verified
     return CurrentUser(id=user_id)
+
+
+def get_user_supabase_client(
+    verified: Tuple[str, str] = Depends(_verify_bearer_token),
+) -> Client:
+    """A Supabase client authenticated as the requesting user, for routes
+    that need to query/update user-owned tables under RLS."""
+    _, token = verified
+    return get_user_scoped_client(token)

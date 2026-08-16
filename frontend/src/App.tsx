@@ -3,6 +3,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { fetchMe } from './lib/apiClient'
+import { OnboardingPage } from './onboarding/OnboardingPage'
+import { OnboardingStatusProvider } from './onboarding/OnboardingStatusContext'
+import { RedirectIfOnboarded } from './onboarding/RedirectIfOnboarded'
+import { RequireOnboardingComplete } from './onboarding/RequireOnboardingComplete'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
 
@@ -46,10 +50,22 @@ function AppRoutes() {
       <Route path="/login" element={session ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/signup" element={session ? <Navigate to="/" replace /> : <SignupPage />} />
       <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <RedirectIfOnboarded>
+              <OnboardingPage />
+            </RedirectIfOnboarded>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/"
         element={
           <ProtectedRoute>
-            <HomePage />
+            <RequireOnboardingComplete>
+              <HomePage />
+            </RequireOnboardingComplete>
           </ProtectedRoute>
         }
       />
@@ -61,7 +77,9 @@ export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <OnboardingStatusProvider>
+          <AppRoutes />
+        </OnboardingStatusProvider>
       </AuthProvider>
     </BrowserRouter>
   )

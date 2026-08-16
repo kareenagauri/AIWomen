@@ -58,6 +58,63 @@ def get_my_profile(
     return ProfileResponse(**row)
 
 
+_REQUIRED_ONBOARDING_PROFILE_FIELDS = (
+    "display_name",
+    "career_field",
+    "location_city",
+    "location_country",
+)
+
+
+@router.post("/me/complete-onboarding", response_model=ProfileResponse)
+def complete_onboarding(
+    current_user: CurrentUser = Depends(get_current_user),
+    client: Client = Depends(get_user_supabase_client),
+) -> ProfileResponse:
+    profile_row = _fetch_profile_row(client, current_user.id)
+
+    missing = [
+        field
+        for field in _REQUIRED_ONBOARDING_PROFILE_FIELDS
+        if not str(profile_row.get(field) or "").strip()
+    ]
+
+    goals_result = (
+        client.table("user_goals").select("goal_id").eq("user_id", current_user.id).execute()
+    )
+    if not goals_result.data:
+        missing.append("at least one goal")
+
+    interests_result = (
+        client.table("user_interests")
+        .select("interest_id")
+        .eq("user_id", current_user.id)
+        .execute()
+    )
+    if not interests_result.data:
+        missing.append("at least one interest")
+
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot complete onboarding — missing: {', '.join(missing)}",
+        )
+
+    result = (
+        client.table("profiles")
+        .update({"onboarding_completed": True})
+        .eq("id", current_user.id)
+        .execute()
+    )
+    rows = result.data
+    if not rows:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_PROFILE_MISSING_DETAIL,
+        )
+    return ProfileResponse(**rows[0])
+
+
 @router.put("/me", response_model=ProfileResponse)
 def update_my_profile(
     payload: ProfileUpdateRequest,

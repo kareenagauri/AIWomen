@@ -30,19 +30,31 @@ export async function authorizedFetch(
   return fetch(`${API_BASE_URL}${path}`, { ...init, headers })
 }
 
+async function throwForError(response: Response, label: string): Promise<never> {
+  let detail = ''
+  try {
+    const body = (await response.json()) as { detail?: string }
+    detail = body.detail ? ` — ${body.detail}` : ''
+  } catch {
+    // Response body wasn't JSON (or was empty) — fall back to the plain
+    // status-based message below.
+  }
+  throw new Error(`${label} failed with status ${response.status}${detail}`)
+}
+
 async function parseJsonOrThrow<T>(response: Response, label: string): Promise<T> {
   if (!response.ok) {
-    let detail = ''
-    try {
-      const body = (await response.json()) as { detail?: string }
-      detail = body.detail ? ` — ${body.detail}` : ''
-    } catch {
-      // Response body wasn't JSON (or was empty) — fall back to the plain
-      // status-based message below.
-    }
-    throw new Error(`${label} failed with status ${response.status}${detail}`)
+    return throwForError(response, label)
   }
   return response.json() as Promise<T>
+}
+
+/** For endpoints that return no body (e.g. 204 No Content) — just asserts
+ * success or throws with the same error-detail handling as parseJsonOrThrow. */
+async function assertOk(response: Response, label: string): Promise<void> {
+  if (!response.ok) {
+    await throwForError(response, label)
+  }
 }
 
 export interface MeResponse {
@@ -142,7 +154,10 @@ export async function replaceMyInterests(interestIds: string[]): Promise<TagOpti
   return parseJsonOrThrow<TagOption[]>(response, 'PUT /api/profile/me/interests')
 }
 
-export interface RecommendationItem {
+/** Fields common to every shape content is displayed in — the feed, the
+ * details page, and the saved list — so each of those only adds what's
+ * actually different about it. */
+export interface DisplayableContent {
   id: string
   category: 'career' | 'wellness'
   content_type: string
@@ -157,6 +172,9 @@ export interface RecommendationItem {
   event_date: string | null
   deadline: string | null
   published_at: string | null
+}
+
+export interface RecommendationItem extends DisplayableContent {
   score: number
   matched_goal_ids: string[]
   matched_interest_ids: string[]
@@ -168,4 +186,34 @@ export async function fetchRecommendations(
   const query = category ? `?category=${category}` : ''
   const response = await authorizedFetch(`/api/recommendations${query}`)
   return parseJsonOrThrow<RecommendationItem[]>(response, 'GET /api/recommendations')
+}
+
+export interface ContentDetail extends DisplayableContent {
+  matched_goal_ids: string[]
+  matched_interest_ids: string[]
+  is_saved: boolean
+}
+
+export async function fetchContentDetail(contentId: string): Promise<ContentDetail> {
+  const response = await authorizedFetch(`/api/content/${contentId}`)
+  return parseJsonOrThrow<ContentDetail>(response, 'GET /api/content/{id}')
+}
+
+export interface SavedContentItem extends DisplayableContent {
+  saved_at: string
+}
+
+export async function fetchSavedContent(): Promise<SavedContentItem[]> {
+  const response = await authorizedFetch('/api/saved')
+  return parseJsonOrThrow<SavedContentItem[]>(response, 'GET /api/saved')
+}
+
+export async function saveContent(contentId: string): Promise<void> {
+  const response = await authorizedFetch(`/api/saved/${contentId}`, { method: 'POST' })
+  await assertOk(response, 'POST /api/saved/{id}')
+}
+
+export async function removeSavedContent(contentId: string): Promise<void> {
+  const response = await authorizedFetch(`/api/saved/${contentId}`, { method: 'DELETE' })
+  await assertOk(response, 'DELETE /api/saved/{id}')
 }

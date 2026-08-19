@@ -1,5 +1,6 @@
-/** Pure display-formatting helpers for the home feed. No fetching, no
- * business/scoring logic — purely presentation of already-fetched data. */
+/** Pure display-formatting helpers, shared across the home feed and content
+ * details page. No fetching, no business/scoring logic — purely
+ * presentation of already-fetched data. */
 
 export function formatContentType(contentType: string): string {
   return contentType

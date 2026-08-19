@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import goals_interests, health, me, onboarding, profile, recommendations
+from app.routers import content, goals_interests, health, me, onboarding, profile, recommendations, saved
 
 settings = get_settings()
 
@@ -22,3 +22,5 @@ app.include_router(profile.router)
 app.include_router(onboarding.router)
 app.include_router(goals_interests.router)
 app.include_router(recommendations.router)
+app.include_router(content.router)
+app.include_router(saved.router)

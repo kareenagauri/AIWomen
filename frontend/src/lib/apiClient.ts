@@ -141,3 +141,31 @@ export async function replaceMyInterests(interestIds: string[]): Promise<TagOpti
   })
   return parseJsonOrThrow<TagOption[]>(response, 'PUT /api/profile/me/interests')
 }
+
+export interface RecommendationItem {
+  id: string
+  category: 'career' | 'wellness'
+  content_type: string
+  title: string
+  description: string | null
+  url: string | null
+  organization: string | null
+  location_city: string | null
+  location_region: string | null
+  location_country: string | null
+  is_remote: boolean
+  event_date: string | null
+  deadline: string | null
+  published_at: string | null
+  score: number
+  matched_goal_ids: string[]
+  matched_interest_ids: string[]
+}
+
+export async function fetchRecommendations(
+  category?: 'career' | 'wellness',
+): Promise<RecommendationItem[]> {
+  const query = category ? `?category=${category}` : ''
+  const response = await authorizedFetch(`/api/recommendations${query}`)
+  return parseJsonOrThrow<RecommendationItem[]>(response, 'GET /api/recommendations')
+}

@@ -1,42 +1,13 @@
-import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { ProtectedRoute } from './auth/ProtectedRoute'
-import { fetchMe } from './lib/apiClient'
+import { HomePage } from './home/HomePage'
 import { OnboardingPage } from './onboarding/OnboardingPage'
 import { OnboardingStatusProvider } from './onboarding/OnboardingStatusContext'
 import { RedirectIfOnboarded } from './onboarding/RedirectIfOnboarded'
 import { RequireOnboardingComplete } from './onboarding/RequireOnboardingComplete'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
-
-function HomePage() {
-  const { user, signOut } = useAuth()
-  const [meUserId, setMeUserId] = useState<string | null>(null)
-  const [meError, setMeError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchMe()
-      .then((data) => setMeUserId(data.user_id))
-      .catch((err) => setMeError(err instanceof Error ? err.message : String(err)))
-  }, [])
-
-  return (
-    <div style={{ maxWidth: 480, margin: '4rem auto' }}>
-      <h1>Authenticated</h1>
-      <p>Signed in as: {user?.email}</p>
-      <p>
-        GET /api/me user_id:{' '}
-        {meError ? (
-          <span style={{ color: 'crimson' }}>{meError}</span>
-        ) : (
-          (meUserId ?? 'loading...')
-        )}
-      </p>
-      <button onClick={() => signOut()}>Log out</button>
-    </div>
-  )
-}
 
 function AppRoutes() {
   const { session, loading } = useAuth()

@@ -1,7 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { ProtectedRoute } from './auth/ProtectedRoute'
+import { ContentDetailsPage } from './content/ContentDetailsPage'
+import { SavedPage } from './content/SavedPage'
 import { HomePage } from './home/HomePage'
+import { ProfilePage } from './profile/ProfilePage'
 import { OnboardingPage } from './onboarding/OnboardingPage'
 import { OnboardingStatusProvider } from './onboarding/OnboardingStatusContext'
 import { RedirectIfOnboarded } from './onboarding/RedirectIfOnboarded'
@@ -36,6 +39,36 @@ function AppRoutes() {
           <ProtectedRoute>
             <RequireOnboardingComplete>
               <HomePage />
+            </RequireOnboardingComplete>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/content/:id"
+        element={
+          <ProtectedRoute>
+            <RequireOnboardingComplete>
+              <ContentDetailsPage />
+            </RequireOnboardingComplete>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/saved"
+        element={
+          <ProtectedRoute>
+            <RequireOnboardingComplete>
+              <SavedPage />
+            </RequireOnboardingComplete>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <RequireOnboardingComplete>
+              <ProfilePage />
             </RequireOnboardingComplete>
           </ProtectedRoute>
         }

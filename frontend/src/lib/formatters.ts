@@ -46,3 +46,17 @@ export function formatRecency(publishedAt: string | null): string | null {
   if (diffDays <= 30) return `Posted ${diffDays} days ago`
   return null
 }
+
+/** Truncates text to at most maxLength characters, cutting back to the
+ * last whitespace boundary rather than mid-word, and appending "...".
+ * Text already within maxLength is returned unchanged. Display only —
+ * never mutates the underlying data the caller holds. */
+export function truncateDescription(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+
+  const cut = text.slice(0, maxLength)
+  const lastSpace = cut.lastIndexOf(' ')
+  const safeCut = lastSpace > 0 ? cut.slice(0, lastSpace) : cut
+
+  return `${safeCut}...`
+}

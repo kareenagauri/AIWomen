@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { DisplayableContent } from '../lib/apiClient'
-import { formatContentType, formatDateLine, formatLocation, formatRecency } from '../lib/formatters'
+import {
+  formatContentType,
+  formatDateLine,
+  formatLocation,
+  formatRecency,
+  truncateDescription,
+} from '../lib/formatters'
+
+const HOME_FEED_DESCRIPTION_MAX_LENGTH = 250
 
 interface RecommendationCardProps {
   item: DisplayableContent
@@ -71,7 +79,11 @@ export function RecommendationCard({
 
       {item.organization && <p style={{ margin: '0.25rem 0', color: '#555' }}>{item.organization}</p>}
 
-      {item.description && <p style={{ margin: '0.5rem 0' }}>{item.description}</p>}
+      {item.description && (
+        <p style={{ margin: '0.5rem 0' }}>
+          {truncateDescription(item.description, HOME_FEED_DESCRIPTION_MAX_LENGTH)}
+        </p>
+      )}
 
       {(location || dateLine) && (
         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem', color: '#555' }}>

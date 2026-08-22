@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,6 +10,10 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_anon_key: str
     cors_origins: str
+    # Optional: the API server boots fine without it. Only required when
+    # actually running an offline ingestion script (app/ingestion/), which
+    # will raise a clear error itself if this is missing at that point.
+    supabase_service_role_key: Optional[str] = None
 
     @property
     def cors_origin_list(self) -> list[str]:

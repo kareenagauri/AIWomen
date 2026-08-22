@@ -28,3 +28,23 @@ def get_user_scoped_client(access_token: str) -> Client:
     client = create_client(settings.supabase_url, settings.supabase_anon_key)
     client.postgrest.auth(access_token)
     return client
+
+
+def get_service_role_client() -> Client:
+    """A client authenticated with the service-role key, bypassing RLS
+    entirely.
+
+    ONLY for offline scripts with no live user request (e.g. content
+    ingestion) — never import this from a router or any request-handling
+    code path. Every table this app exposes to end users enforces access
+    through RLS or through get_user_scoped_client's per-user filtering;
+    this client sidesteps both, so its use is deliberately confined to
+    app/ingestion/.
+    """
+    settings = get_settings()
+    if not settings.supabase_service_role_key:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_ROLE_KEY is not set — required to run offline "
+            "ingestion scripts. Add it to backend/.env."
+        )
+    return create_client(settings.supabase_url, settings.supabase_service_role_key)

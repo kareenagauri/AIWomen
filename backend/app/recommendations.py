@@ -48,6 +48,35 @@ def is_location_eligible(
     return content_city == profile_city and content_country == profile_country
 
 
+def matches_search(
+    search_term: Optional[str], title: str, description: Optional[str]
+) -> bool:
+    """Case-insensitive substring match against title or description. An
+    empty/whitespace-only term matches everything (equivalent to no search
+    filter at all). Deliberately a plain Python check, not a PostgREST
+    `.or_()` filter string — arbitrary user input containing `,`, `.`, `(`,
+    `)`, or `*` would be misparsed as PostgREST filter syntax rather than
+    treated as a literal search term."""
+    if not search_term or not search_term.strip():
+        return True
+    term = search_term.strip().lower()
+    haystack = f"{title} {description or ''}".lower()
+    return term in haystack
+
+
+def matches_location_preference(preference: Optional[str], is_remote: bool) -> bool:
+    """Remote/local narrowing, applied on top of (never instead of)
+    is_location_eligible — this function only ever sees candidates that
+    already passed that eligibility check."""
+    if preference is None:
+        return True
+    if preference == "remote":
+        return is_remote
+    if preference == "local":
+        return not is_remote
+    return True
+
+
 def score_content(
     candidate: ContentCandidate,
     user_goal_ids: FrozenSet[str],

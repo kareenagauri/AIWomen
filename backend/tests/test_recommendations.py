@@ -7,6 +7,8 @@ from datetime import datetime, timedelta, timezone
 from app.recommendations import (
     ContentCandidate,
     is_location_eligible,
+    matches_location_preference,
+    matches_search,
     rank_content,
     score_content,
 )
@@ -162,3 +164,71 @@ def test_mismatched_city_is_not_eligible():
         profile_city="Bengaluru",
         profile_country="India",
     )
+
+
+# ---- matches_search --------------------------------------------------
+
+
+def test_search_exact_title_match():
+    assert matches_search(
+        "Women in Leadership Scholarship", "Women in Leadership Scholarship", None
+    )
+
+
+def test_search_partial_title_match():
+    assert matches_search("leadership", "Women in Leadership Scholarship", None)
+
+
+def test_search_description_match():
+    assert matches_search(
+        "mentorship", "Some Title", "A mentorship program for career returners."
+    )
+
+
+def test_search_case_insensitive():
+    assert matches_search("LEADERSHIP", "Women in Leadership Scholarship", None)
+
+
+def test_search_strips_leading_and_trailing_whitespace():
+    assert matches_search("  leadership  ", "Women in Leadership Scholarship", None)
+
+
+def test_search_empty_string_matches_everything():
+    assert matches_search("", "Anything at all", None)
+
+
+def test_search_whitespace_only_matches_everything():
+    assert matches_search("   ", "Anything at all", None)
+
+
+def test_search_non_matching_term_does_not_match():
+    assert not matches_search(
+        "astrophysics", "Women in Leadership Scholarship", "A mentorship program."
+    )
+
+
+# ---- matches_location_preference -----------------------------------------
+
+
+def test_no_preference_accepts_remote():
+    assert matches_location_preference(None, is_remote=True)
+
+
+def test_no_preference_accepts_local():
+    assert matches_location_preference(None, is_remote=False)
+
+
+def test_remote_preference_accepts_remote():
+    assert matches_location_preference("remote", is_remote=True)
+
+
+def test_remote_preference_rejects_local():
+    assert not matches_location_preference("remote", is_remote=False)
+
+
+def test_local_preference_accepts_local():
+    assert matches_location_preference("local", is_remote=False)
+
+
+def test_local_preference_rejects_remote():
+    assert not matches_location_preference("local", is_remote=True)

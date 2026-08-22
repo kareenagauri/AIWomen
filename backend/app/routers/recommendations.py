@@ -6,12 +6,28 @@ from pydantic import BaseModel
 from supabase import Client
 
 from app.dependencies.auth import CurrentUser, get_current_user, get_user_supabase_client
-from app.recommendations import ContentCandidate, is_location_eligible, rank_content
+from app.recommendations import (
+    ContentCandidate,
+    is_location_eligible,
+    matches_location_preference,
+    matches_search,
+    rank_content,
+)
 from app.supabase_client import get_supabase_client
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
 _VALID_CATEGORIES = ("career", "wellness")
+_VALID_CONTENT_TYPES = (
+    "job",
+    "program",
+    "scholarship",
+    "event",
+    "article",
+    "video",
+    "local_resource",
+)
+_VALID_LOCATION_PREFERENCES = ("remote", "local")
 
 
 class RecommendationItem(BaseModel):
@@ -43,6 +59,9 @@ def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
 @router.get("", response_model=List[RecommendationItem])
 def get_recommendations(
     category: Optional[str] = Query(default=None),
+    content_type: Optional[str] = Query(default=None),
+    search: Optional[str] = Query(default=None),
+    location: Optional[str] = Query(default=None),
     current_user: CurrentUser = Depends(get_current_user),
     user_client: Client = Depends(get_user_supabase_client),
 ) -> List[RecommendationItem]:
@@ -50,6 +69,16 @@ def get_recommendations(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"category must be one of {_VALID_CATEGORIES}",
+        )
+    if content_type is not None and content_type not in _VALID_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"content_type must be one of {_VALID_CONTENT_TYPES}",
+        )
+    if location is not None and location not in _VALID_LOCATION_PREFERENCES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"location must be one of {_VALID_LOCATION_PREFERENCES}",
         )
 
     # User-specific data (profile location, goals, interests) goes through
@@ -87,8 +116,16 @@ def get_recommendations(
     content_query = public_client.table("content_items").select("*").eq("is_active", True)
     if category:
         content_query = content_query.eq("category", category)
+    if content_type:
+        content_query = content_query.eq("content_type", content_type)
     content_rows: List[Dict[str, Any]] = content_query.execute().data
 
+    # Candidate narrowing, strictly before any scoring: existing location
+    # eligibility always runs first and is never bypassed, remote/local is
+    # a further restriction on top of it (never a replacement for it), and
+    # search is a plain in-memory substring check — not a second
+    # recommendation algorithm, just fewer candidates reaching the existing
+    # score_content()/rank_content().
     eligible_rows = [
         row
         for row in content_rows
@@ -99,6 +136,8 @@ def get_recommendations(
             profile_city=profile_city,
             profile_country=profile_country,
         )
+        and matches_location_preference(location, row["is_remote"])
+        and matches_search(search, row["title"], row.get("description"))
     ]
 
     content_ids = [row["id"] for row in eligible_rows]

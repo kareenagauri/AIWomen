@@ -180,11 +180,26 @@ export interface RecommendationItem extends DisplayableContent {
   matched_interest_ids: string[]
 }
 
+export interface RecommendationFilters {
+  category?: 'career' | 'wellness'
+  content_type?: string
+  search?: string
+  location?: 'remote' | 'local'
+}
+
 export async function fetchRecommendations(
-  category?: 'career' | 'wellness',
+  filters: RecommendationFilters = {},
 ): Promise<RecommendationItem[]> {
-  const query = category ? `?category=${category}` : ''
-  const response = await authorizedFetch(`/api/recommendations${query}`)
+  // URLSearchParams handles encoding — never hand-concatenate user input
+  // (e.g. a search term) directly into the query string.
+  const params = new URLSearchParams()
+  if (filters.category) params.set('category', filters.category)
+  if (filters.content_type) params.set('content_type', filters.content_type)
+  if (filters.search && filters.search.trim()) params.set('search', filters.search.trim())
+  if (filters.location) params.set('location', filters.location)
+
+  const query = params.toString()
+  const response = await authorizedFetch(`/api/recommendations${query ? `?${query}` : ''}`)
   return parseJsonOrThrow<RecommendationItem[]>(response, 'GET /api/recommendations')
 }
 

@@ -7,7 +7,13 @@ import {
   saveContent,
   type ContentDetail,
 } from '../lib/apiClient'
-import { formatContentType, formatDateLine, formatLocation, formatRecency } from '../lib/formatters'
+import {
+  formatContentType,
+  formatCtaLabel,
+  formatDateLine,
+  formatLocation,
+  formatRecency,
+} from '../lib/formatters'
 
 export function ContentDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -141,7 +147,7 @@ export function ContentDetailsPage() {
                 textDecoration: 'none',
               }}
             >
-              Open Opportunity →
+              {formatCtaLabel(content.content_type)} →
             </a>
           )}
         </div>

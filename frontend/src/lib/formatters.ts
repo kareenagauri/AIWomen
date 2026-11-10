@@ -9,6 +9,19 @@ export function formatContentType(contentType: string): string {
     .join(' ')
 }
 
+/** content_type values that read as write-ups to consume rather than
+ * opportunities to apply/attend — currently just "article" (Mindful.org).
+ * Anything else, including a missing content_type, falls back to the
+ * opportunity label. */
+const ARTICLE_LIKE_CONTENT_TYPES = new Set(['article'])
+
+export function formatCtaLabel(contentType: string | null | undefined): string {
+  if (contentType && ARTICLE_LIKE_CONTENT_TYPES.has(contentType)) {
+    return 'Read More'
+  }
+  return 'Open Opportunity'
+}
+
 export function formatLocation(
   isRemote: boolean,
   city: string | null,
